@@ -3,32 +3,34 @@ import random
 
 range_min = 1
 range_max = 25
+elem_count = 30
 data_to_sort = []
 
 
 def calc_data():
     global data_to_sort
     data_to_sort = []
-    for _ in range(50):
+    for _ in range(elem_count):
         data_to_sort.append(random.randint(range_min, range_max))
 
 
-calc_data()
-
 # visualization of bubble sort
 import pygame
+
 pygame.init()
 
 rect_color = (255, 0, 0)
 text_color = (0, 255, 0)
 
-data_count = len(data_to_sort)
-max_value = max(data_to_sort)
+data_count = elem_count
+max_value = range_max
 
 font_height = 18
-font = pygame.font.Font('freesansbold.ttf', font_height)
+font_values = pygame.font.Font('freesansbold.ttf', font_height)
+font_info = pygame.font.Font('freesansbold.ttf', 18)
+font_sorted = pygame.font.Font('freesansbold.ttf', 32)
 
-text = font.render(str(range_max), True, text_color)
+text = font_values.render(str(range_max), True, text_color)
 textRect = text.get_rect()
 
 
@@ -37,7 +39,6 @@ text_y_offset = font_height / 2
 block_width = textRect.width
 block_gap = 5
 block_offset = block_width + block_gap
-# one_block_height = 5
 one_block_height = block_width
 border_offset = 10
 
@@ -45,8 +46,11 @@ screen_width = data_count * block_offset - block_gap + 2 * border_offset
 screen_height = one_block_height * max_value + 2 * border_offset + font_height
 
 screen = pygame.display.set_mode([screen_width, screen_height])
+pygame.display.set_caption('Sort view')
 
 is_pause = True
+is_sorted = False
+is_show_info = False
 
 clock = pygame.time.Clock()
 pygame.time.set_timer(pygame.USEREVENT, 200)
@@ -98,7 +102,7 @@ draw_modes = [
 draw_modes_dict = dict(draw_modes)
 print(draw_modes_dict)
 
-draw_mode = 'circle'
+draw_mode = 'rect'
 
 
 def next_draw_mode():
@@ -136,10 +140,12 @@ def draw_line(surface, color, start, end, width=1):
     pygame.draw.line(surface, color, translate_pos(start), translate_pos(end), width=width)
 
 
-def draw_text(surface, color, pos, value):
-    text = font.render(str(value), True, color)
+def draw_text(surface, color, pos, value, font, bgcolor=None, alpha=None):
+    text = font.render(str(value), True, color, bgcolor)
     textRect = text.get_rect()
     textRect.center = pos
+    if alpha is not None:
+        text.set_alpha(alpha)
     surface.blit(text, textRect)
 
 
@@ -154,29 +160,68 @@ def draw_data(surface, rect_color, text_color, pos, data):
         draw_elem(surface, rect_color, pos, n, x)
 
         text_pos = (start_x + block_offset * n + block_width / 2, start_y + x * one_block_height + text_y_offset)
-        draw_text(surface, text_color, translate_pos(text_pos), x)
+        draw_text(surface, text_color, translate_pos(text_pos), x, font_values)
 
 
 def step():
+    global is_sorted
+    if is_sorted:
+        return
+    has_swap = False
     for i in range(len(data_to_sort) - 1):
         if data_to_sort[i] > data_to_sort[i + 1]:
             temp = data_to_sort[i]
             data_to_sort[i] = data_to_sort[i+1]
             data_to_sort[i+1] = temp
+            has_swap = True
+    if not has_swap:  # means that we already have sorted list
+        is_sorted = True
 
 
 def update():
-    if not is_pause:
-        step()
+    if is_pause:
+        return
+
+    step()
 
 
 def reset():
+    global is_sorted
+    is_sorted = False
     calc_data()
 
 
+def draw_info_text(surface):
+    if is_show_info:
+        info = [
+            "[SPACE] - play/stop animation",
+            "[R] - reset",
+            "[D] - change draw mode",
+            "[N] - next sort step",
+            "[TAB] - hide this help info"
+        ]
+        for n, text_value in enumerate(info):
+            pos = (screen_width / 2,
+                   screen_height - border_offset - font_info.get_height() / 2 - (font_info.get_height() + 3) * n)
+            draw_text(surface, (0, 0, 255), translate_pos(pos), text_value, font_info, (255, 255, 255), 100)
+    else:
+        pos = (screen_width / 2,
+               screen_height - border_offset - font_info.get_height() / 2)
+        draw_text(surface, (0, 0, 255), translate_pos(pos), "[TAB] - show help", font_info, (255, 255, 255), 75)
+
+
+def draw_sorted_text(surface):
+    if not is_sorted:
+        return
+
+    pos = (screen_width / 2, block_offset + font_sorted.get_height())
+    draw_text(surface, (255, 0, 0), translate_pos(pos), "SORTED", font_sorted, (255, 255, 255), 127)
+
+
+reset()
+
 running = True
 while running:
-    # Did the user click the window close button?
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -191,9 +236,16 @@ while running:
                 is_pause = not is_pause
             if event.key == pygame.K_d:
                 next_draw_mode()
+            if event.key == pygame.K_TAB:
+                is_show_info = not is_show_info
 
+    # draw black background
     screen.fill((0, 0, 0))
+
+    # draw list elements
     draw_data(screen, rect_color, text_color, (border_offset, border_offset), data_to_sort)
+    draw_info_text(screen)
+    draw_sorted_text(screen)
 
     pygame.display.flip()
     clock.tick(60)
