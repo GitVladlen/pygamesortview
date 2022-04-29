@@ -1,4 +1,5 @@
 # pygamesortview
+![myfile](https://github.com/GitVladlen/pygamesortview/blob/master/demo.gif)
 
 How to install (on Windows for Python 3):
 1. Clone repository
