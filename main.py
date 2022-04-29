@@ -2,8 +2,8 @@
 import random
 
 range_min = 1
-range_max = 25
-elem_count = 30
+range_max = 15
+elem_count = 20
 data_to_sort = []
 
 
@@ -40,7 +40,7 @@ block_width = textRect.width
 block_gap = 5
 block_offset = block_width + block_gap
 one_block_height = block_width
-border_offset = 10
+border_offset = 20
 
 screen_width = data_count * block_offset - block_gap + 2 * border_offset
 screen_height = one_block_height * max_value + 2 * border_offset + font_height
@@ -51,6 +51,8 @@ pygame.display.set_caption('Sort view')
 is_pause = True
 is_sorted = False
 is_show_info = False
+is_demo_enabled = False
+is_sort_from_small_to_greater = True
 
 clock = pygame.time.Clock()
 pygame.time.set_timer(pygame.USEREVENT, 200)
@@ -163,13 +165,20 @@ def draw_data(surface, rect_color, text_color, pos, data):
         draw_text(surface, text_color, translate_pos(text_pos), x, font_values)
 
 
+def sort_need_swap(left, right):
+    if is_sort_from_small_to_greater:
+        return left > right
+    else:
+        return left < right
+
+
 def step():
     global is_sorted
     if is_sorted:
         return
     has_swap = False
     for i in range(len(data_to_sort) - 1):
-        if data_to_sort[i] > data_to_sort[i + 1]:
+        if sort_need_swap(data_to_sort[i], data_to_sort[i + 1]):
             temp = data_to_sort[i]
             data_to_sort[i] = data_to_sort[i+1]
             data_to_sort[i+1] = temp
@@ -197,16 +206,18 @@ def draw_info_text(surface):
             "[SPACE] - play/stop animation",
             "[R] - reset",
             "[D] - change draw mode",
+            "[C] - change sort direction",
             "[N] - next sort step",
-            "[TAB] - hide this help info"
+            "[S] - demo",
+            "[TAB] - hide this help info",
         ]
         for n, text_value in enumerate(info):
             pos = (screen_width / 2,
                    screen_height - border_offset - font_info.get_height() / 2 - (font_info.get_height() + 3) * n)
-            draw_text(surface, (0, 0, 255), translate_pos(pos), text_value, font_info, (255, 255, 255), 100)
+            draw_text(surface, (0, 0, 255), translate_pos(pos), text_value, font_info, (255, 255, 255), 200)
     else:
         pos = (screen_width / 2,
-               screen_height - border_offset - font_info.get_height() / 2)
+               screen_height - font_info.get_height() / 2)
         draw_text(surface, (0, 0, 255), translate_pos(pos), "[TAB] - show help", font_info, (255, 255, 255), 75)
 
 
@@ -215,7 +226,18 @@ def draw_sorted_text(surface):
         return
 
     pos = (screen_width / 2, block_offset + font_sorted.get_height())
-    draw_text(surface, (255, 0, 0), translate_pos(pos), "SORTED", font_sorted, (255, 255, 255), 127)
+    draw_text(surface, (255, 0, 0), translate_pos(pos), "SORTED", font_sorted, (255, 255, 255), 200)
+
+
+def set_random_draw_mode():
+    for _ in range(random.randint(0, len(draw_modes))):
+        next_draw_mode()
+
+
+def set_random_sort_direction():
+    global is_sort_from_small_to_greater
+    for _ in range(random.randint(0, 20)):
+        is_sort_from_small_to_greater = not is_sort_from_small_to_greater
 
 
 reset()
@@ -225,19 +247,25 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.USEREVENT:
+        elif event.type == pygame.USEREVENT:
             update()
-        if event.type == pygame.KEYUP:
+        elif event.type == pygame.KEYUP:
             if event.key == pygame.K_r:
                 reset()
-            if event.key == pygame.K_n:
+            elif event.key == pygame.K_n:
                 step()
-            if event.key == pygame.K_SPACE:
+            elif event.key == pygame.K_s:
+                is_demo_enabled = not is_demo_enabled
+                is_pause = not is_demo_enabled
+            elif event.key == pygame.K_c:
+                is_sort_from_small_to_greater = not is_sort_from_small_to_greater
+            elif event.key == pygame.K_SPACE:
                 is_pause = not is_pause
-            if event.key == pygame.K_d:
+            elif event.key == pygame.K_d:
                 next_draw_mode()
-            if event.key == pygame.K_TAB:
+            elif event.key == pygame.K_TAB:
                 is_show_info = not is_show_info
+
 
     # draw black background
     screen.fill((0, 0, 0))
@@ -246,6 +274,12 @@ while running:
     draw_data(screen, rect_color, text_color, (border_offset, border_offset), data_to_sort)
     draw_info_text(screen)
     draw_sorted_text(screen)
+
+    if is_demo_enabled:
+        if is_sorted is True:
+            set_random_draw_mode()
+            set_random_sort_direction()
+            reset()
 
     pygame.display.flip()
     clock.tick(60)
