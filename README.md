@@ -15,8 +15,10 @@ python -m venv venv
 ```
 call ./venv/Scripts/activate
 ```
-5. Install requirements: pip install -r requirements.txt
-
+5. Install requirements:
+```
+pip install -r requirements.txt
+```
 # How to run:
 Run command:
 ```
